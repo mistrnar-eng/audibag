@@ -65,8 +65,19 @@ function setupHeroCarousel() {
     }, 220);
   }
 
+  let autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
+  const pauseAutoPlay = () => window.clearInterval(autoPlayTimer);
+  const resumeAutoPlay = () => {
+    window.clearInterval(autoPlayTimer);
+    autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
+  };
+
   previous.addEventListener("click", () => showSlide(-1));
   next.addEventListener("click", () => showSlide(1));
+  frame.addEventListener("mouseenter", pauseAutoPlay);
+  frame.addEventListener("mouseleave", resumeAutoPlay);
+  frame.addEventListener("focusin", pauseAutoPlay);
+  frame.addEventListener("focusout", resumeAutoPlay);
   frame.addEventListener("click", (event) => {
     if (event.target.closest("button")) return;
     const direction = event.clientX < frame.getBoundingClientRect().left + frame.offsetWidth / 2 ? -1 : 1;
@@ -150,10 +161,20 @@ function setupSmoothAnchorScrolling() {
   });
 }
 
+function setupIntroSplash() {
+  const splash = document.querySelector(".intro-splash");
+  if (!splash) return;
+  window.setTimeout(() => {
+    splash.classList.add("is-complete");
+    window.setTimeout(() => splash.remove(), 900);
+  }, 1450);
+}
+
 detectCurrency();
 setupHeroCarousel();
 loadOptionalGallery();
 setupOrderForm();
 setupRevealAnimations();
 setupSmoothAnchorScrolling();
+setupIntroSplash();
 

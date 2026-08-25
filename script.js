@@ -26,18 +26,23 @@ function loadOptionalGallery() {
 
 function setupHeroCarousel() {
   const frame = document.querySelector(".hero-carousel");
-  const image = document.querySelector("#hero-image");
   const counter = document.querySelector("#hero-counter");
   const previous = document.querySelector(".carousel-prev");
   const next = document.querySelector(".carousel-next");
+  const layers = [document.querySelector("#hero-image"), document.querySelector("#hero-image-next")];
   const files = ["product.jpg", "photo-2.jpg", "photo-3.jpg"];
   let slides = [];
   let currentIndex = 0;
-  let transitionTimer;
+  let activeLayer = 0;
+  let isAnimating = false;
+  let autoPlayTimer;
 
-  Promise.all(files.map((file) => new Promise((resolve) => {
+  Promise.all(files.map((file, index) => new Promise((resolve) => {
     const candidate = new Image();
-    candidate.onload = () => resolve({ src: file, alt: file === "product.jpg" ? "Premium EV charging cable storage bag" : `Charging cable bag view ${slides.length + 1}` });
+    candidate.onload = () => resolve({
+      src: file,
+      alt: index === 0 ? "Premium EV charging cable storage bag" : `Charging cable bag view ${index + 1}`
+    });
     candidate.onerror = () => resolve(null);
     candidate.src = file;
   }))).then((loadedSlides) => {
@@ -49,29 +54,33 @@ function setupHeroCarousel() {
 
   function updateCounter() {
     counter.textContent = `${String(currentIndex + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
-    frame.classList.remove("is-square");
   }
 
   function showSlide(direction) {
-    if (slides.length < 2) return;
+    if (slides.length < 2 || isAnimating) return;
     currentIndex = (currentIndex + direction + slides.length) % slides.length;
-    frame.classList.add("is-changing");
-    clearTimeout(transitionTimer);
-    transitionTimer = setTimeout(() => {
-      image.src = slides[currentIndex].src;
-      image.alt = slides[currentIndex].alt;
-      updateCounter();
-      requestAnimationFrame(() => frame.classList.remove("is-changing"));
-    }, 1500);
+    const outgoing = layers[activeLayer];
+    const incoming = layers[1 - activeLayer];
+    const slide = slides[currentIndex];
+    isAnimating = true;
+    incoming.src = slide.src;
+    incoming.alt = slide.alt;
+    requestAnimationFrame(() => {
+      outgoing.classList.remove("is-active");
+      incoming.classList.add("is-active");
+    });
+    activeLayer = 1 - activeLayer;
+    updateCounter();
+    window.setTimeout(() => { isAnimating = false; }, 1100);
   }
 
-  let autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
   const pauseAutoPlay = () => window.clearInterval(autoPlayTimer);
   const resumeAutoPlay = () => {
     window.clearInterval(autoPlayTimer);
     autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
   };
 
+  resumeAutoPlay();
   previous.addEventListener("click", () => showSlide(-1));
   next.addEventListener("click", () => showSlide(1));
   frame.addEventListener("mouseenter", pauseAutoPlay);
@@ -164,10 +173,17 @@ function setupSmoothAnchorScrolling() {
 function setupIntroSplash() {
   const splash = document.querySelector(".intro-splash");
   if (!splash) return;
-  window.setTimeout(() => {
-    splash.classList.add("is-complete");
-    window.setTimeout(() => splash.remove(), 900);
-  }, 1450);
+  splash.addEventListener("animationend", (event) => {
+    if (event.target === splash && event.animationName === "splash-exit") splash.remove();
+  });
+}
+
+function setupHeaderScrollState() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+  const updateState = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
+  updateState();
+  window.addEventListener("scroll", updateState, { passive: true });
 }
 
 detectCurrency();
@@ -177,4 +193,5 @@ setupOrderForm();
 setupRevealAnimations();
 setupSmoothAnchorScrolling();
 setupIntroSplash();
+setupHeaderScrollState();
 

@@ -1,3 +1,5 @@
+const nodemailer = require("nodemailer");
+
 const json = (statusCode, body) => ({
   statusCode,
   headers: { "Content-Type": "application/json" },
@@ -24,29 +26,25 @@ exports.handler = async (event) => {
     `Contact: ${contact}`, `Customer email: ${customerEmail}`,
     `Model: ${model}`, `Price: ${price}`
   ].join("\n");
-  const results = [];
-  if (!process.env.RESEND_API_KEY || !process.env.ORDER_EMAIL) {
-    return json(503, { error: "Missing email configuration: RESEND_API_KEY and ORDER_EMAIL" });
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD || !process.env.ORDER_EMAIL) {
+    return json(503, { error: "Missing Gmail configuration" });
   }
 
   try {
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || "Website orders <onboarding@resend.dev>",
-        to: [process.env.ORDER_EMAIL],
-        reply_to: customerEmail,
-        subject: "New e-tron Charging Bag order",
-        text: emailText
-      })
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
-    results.push({ channel: "email", ok: emailResponse.ok });
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: process.env.ORDER_EMAIL,
+      replyTo: customerEmail,
+      subject: "New e-tron Charging Bag order",
+      text: emailText
+    });
+    return json(200, { ok: true, channel: "email" });
   } catch (error) {
-    console.error("Email delivery failed", error);
-    return json(502, { error: "Email delivery failed" });
+    console.error("Gmail delivery failed", error);
+    return json(502, { error: "Gmail delivery failed" });
   }
-
-  if (!results.length || results.some((result) => !result.ok)) return json(502, { error: "Delivery failed" });
-  return json(200, { ok: true });
 };

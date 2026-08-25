@@ -1,87 +1,33 @@
-﻿const PRODUCT_PRICE = { ua: "2 023 ₴", other: "€49" };
+const CONTACT_PHONE = "+380506410207";
+const CONTACT_EMAIL = "sergey.romanenko@gmail.com";
+const TEXT_SIZE_KEY = "eva-accessories-text-size";
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function setPrice(countryCode) {
-  const isUkraine = countryCode === "UA";
-  document.querySelector("#price").textContent = isUkraine ? PRODUCT_PRICE.ua : PRODUCT_PRICE.other;
-  document.querySelector("#price-note").textContent = isUkraine ? "для України" : "for Europe / other countries";
-}
-
-async function detectCurrency() {
-  try {
-    const response = await fetch("https://ipapi.co/json/", { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("IP lookup failed");
-    const data = await response.json();
-    setPrice(data.country_code);
-  } catch {
-    setPrice((navigator.language || "").toUpperCase().includes("UA") ? "UA" : "OTHER");
-  }
-}
-
-function loadOptionalGallery() {
-  const image = document.querySelector(".gallery-square img");
-  const frame = image.closest(".gallery-square");
-  image.addEventListener("error", () => frame.classList.add("is-missing"));
-  image.addEventListener("click", () => frame.classList.toggle("is-zoomed"));
-}
-
-function setupHeroCarousel() {
-  const frame = document.querySelector(".hero-carousel");
-  const image = document.querySelector("#hero-image");
-  const counter = document.querySelector("#hero-counter");
-  const previous = document.querySelector(".carousel-prev");
-  const next = document.querySelector(".carousel-next");
-  const files = ["product.jpg", "photo-2.jpg", "photo-3.jpg"];
-  let slides = [];
-  let currentIndex = 0;
-  let transitionTimer;
-
-  Promise.all(files.map((file) => new Promise((resolve) => {
-    const candidate = new Image();
-    candidate.onload = () => resolve({ src: file, alt: file === "product.jpg" ? "Premium EV charging cable storage bag" : `Charging cable bag view ${slides.length + 1}` });
-    candidate.onerror = () => resolve(null);
-    candidate.src = file;
-  }))).then((loadedSlides) => {
-    slides = loadedSlides.filter(Boolean);
-    if (slides.length === 0) return;
-    previous.hidden = next.hidden = slides.length < 2;
-    updateCounter();
-  });
-
-  function updateCounter() {
-    counter.textContent = `${String(currentIndex + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
-    frame.classList.remove("is-square");
-  }
-
-  function showSlide(direction) {
-    if (slides.length < 2) return;
-    currentIndex = (currentIndex + direction + slides.length) % slides.length;
-    frame.classList.add("is-changing");
-    clearTimeout(transitionTimer);
-    transitionTimer = setTimeout(() => {
-      image.src = slides[currentIndex].src;
-      image.alt = slides[currentIndex].alt;
-      updateCounter();
-      requestAnimationFrame(() => frame.classList.remove("is-changing"));
-    }, 1500);
-  }
-
-  let autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
-  const pauseAutoPlay = () => window.clearInterval(autoPlayTimer);
-  const resumeAutoPlay = () => {
-    window.clearInterval(autoPlayTimer);
-    autoPlayTimer = window.setInterval(() => showSlide(1), 15000);
+function setupTextSize() {
+  const slider = document.querySelector("#text-size");
+  const saved = Number(localStorage.getItem(TEXT_SIZE_KEY));
+  const value = Number.isFinite(saved) ? Math.min(130, Math.max(90, saved)) : 110;
+  const apply = (percent) => {
+    const next = Math.min(130, Math.max(90, percent));
+    slider.value = next - 90;
+    slider.style.setProperty("--range-position", `${((next - 90) / 40) * 100}%`);
+    document.documentElement.style.setProperty("--text-scale", next / 100);
+    localStorage.setItem(TEXT_SIZE_KEY, String(next));
   };
+  apply(value);
+  slider.addEventListener("input", () => apply(Number(slider.value) + 90));
+  document.querySelectorAll("[data-text-step]").forEach((button) => button.addEventListener("click", () => apply(Number(slider.value) + 90 + Number(button.dataset.textStep) * 5)));
+}
 
-  previous.addEventListener("click", () => showSlide(-1));
-  next.addEventListener("click", () => showSlide(1));
-  frame.addEventListener("mouseenter", pauseAutoPlay);
-  frame.addEventListener("mouseleave", resumeAutoPlay);
-  frame.addEventListener("focusin", pauseAutoPlay);
-  frame.addEventListener("focusout", resumeAutoPlay);
-  frame.addEventListener("click", (event) => {
-    if (event.target.closest("button")) return;
-    const direction = event.clientX < frame.getBoundingClientRect().left + frame.offsetWidth / 2 ? -1 : 1;
-    showSlide(direction);
+function setupContacts() {
+  const phone = document.querySelector("#phone-link");
+  const email = document.querySelector("#email-link");
+  phone.querySelector("strong").textContent = CONTACT_PHONE;
+  email.href = `mailto:${CONTACT_EMAIL}`;
+  email.querySelector("strong").textContent = CONTACT_EMAIL;
+  phone.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(CONTACT_PHONE); } catch { /* Clipboard is unavailable in some local previews. */ }
+    document.querySelector("#copy-status").textContent = "Скопійовано";
   });
 }
 
@@ -92,89 +38,53 @@ function setupOrderForm() {
     event.preventDefault();
     const button = form.querySelector("button[type=submit]");
     button.disabled = true;
-    status.textContent = "Надсилання замовлення...";
-    if (window.location.protocol === "file:") {
-      status.textContent = "Для справжнього надсилання відкрийте сайт через Netlify, а не index.html з комп'ютера.";
-      button.disabled = false;
-      return;
-    }
+    status.textContent = "Надсилання запиту...";
     const order = Object.fromEntries(new FormData(form));
-    order.price = document.querySelector("#price").textContent;
     try {
-      const response = await fetch("/api/order", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order)
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "Order request failed");
-      status.textContent = "Замовлення надіслано. Ми зв'яжемося з вами найближчим часом.";
+      const formData = new URLSearchParams({ "form-name": "orders", ...order });
+      const response = await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString() });
+      if (!response.ok) throw new Error("Не вдалося надіслати запит");
+      status.textContent = "Запит надіслано. Ми зв'яжемося з вами найближчим часом.";
       form.reset();
     } catch (error) {
-      status.textContent = error.message || "Не вдалося надіслати замовлення.";
-    } finally {
-      button.disabled = false;
-    }
+      status.textContent = error.message || "Не вдалося надіслати запит.";
+    } finally { button.disabled = false; }
   });
 }
 
 function setupRevealAnimations() {
-  const observer = new IntersectionObserver((entries, currentObserver) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-        currentObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
+  const elements = document.querySelectorAll(".reveal, .benefit");
+  if (reducedMotion || !("IntersectionObserver" in window)) { elements.forEach((element) => element.classList.add("visible")); return; }
+  const observer = new IntersectionObserver((entries, currentObserver) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add("visible"); currentObserver.unobserve(entry.target); } }), { threshold: 0.12 });
+  elements.forEach((element) => observer.observe(element));
 }
 
-function setupSmoothAnchorScrolling() {
-  document.querySelectorAll('a[href^="#"]').forEach((link) => {
-    link.addEventListener("click", (event) => {
-      const target = document.querySelector(link.getAttribute("href"));
-      if (!target) return;
-      event.preventDefault();
-
-      link.classList.remove("is-clicked");
-      void link.offsetWidth;
-      link.classList.add("is-clicked");
-
-      const headerHeight = document.querySelector(".site-header")?.offsetHeight || 0;
-      const start = window.scrollY;
-      const destination = Math.max(0, target.getBoundingClientRect().top + start - headerHeight - 18);
-      const distance = destination - start;
-      const duration = Math.min(1800, Math.max(900, Math.abs(distance) * 0.9));
-      const startedAt = performance.now();
-
-      const animateScroll = (now) => {
-        const progress = duration === 0 ? 1 : Math.min(1, (now - startedAt) / duration);
-        const eased = progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-        window.scrollTo(0, start + distance * eased);
-        if (progress < 1) requestAnimationFrame(animateScroll);
-      };
-
-      requestAnimationFrame(animateScroll);
-      history.pushState(null, "", link.getAttribute("href"));
-    });
-  });
+function setupSmoothScrolling() {
+  let animationFrame = null;
+  const cancel = () => { if (animationFrame) cancelAnimationFrame(animationFrame); animationFrame = null; };
+  ["wheel", "touchstart", "keydown"].forEach((eventName) => window.addEventListener(eventName, cancel, { passive: true }));
+  document.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener("click", (event) => {
+    const target = document.querySelector(link.getAttribute("href"));
+    if (!target) return;
+    event.preventDefault(); cancel();
+    const start = window.scrollY;
+    const destination = Math.max(0, target.getBoundingClientRect().top + start - document.querySelector(".site-header").offsetHeight - 18);
+    const distance = destination - start;
+    const duration = reducedMotion ? 0 : Math.min(1600, Math.max(700, Math.abs(distance) * 0.75));
+    const startedAt = performance.now();
+    const animate = (now) => {
+      const progress = duration ? Math.min(1, (now - startedAt) / duration) : 1;
+      const eased = progress < 0.5 ? 4 * progress ** 3 : 1 - ((-2 * progress + 2) ** 3) / 2;
+      window.scrollTo(0, start + distance * eased);
+      if (progress < 1) animationFrame = requestAnimationFrame(animate); else animationFrame = null;
+    };
+    animationFrame = requestAnimationFrame(animate);
+    history.pushState(null, "", link.getAttribute("href"));
+  }));
 }
 
-function setupIntroSplash() {
-  const splash = document.querySelector(".intro-splash");
-  if (!splash) return;
-  window.setTimeout(() => {
-    splash.classList.add("is-complete");
-    window.setTimeout(() => splash.remove(), 900);
-  }, 1450);
-}
-
-detectCurrency();
-setupHeroCarousel();
-loadOptionalGallery();
+setupTextSize();
+setupContacts();
 setupOrderForm();
 setupRevealAnimations();
-setupSmoothAnchorScrolling();
-setupIntroSplash();
-
+setupSmoothScrolling();

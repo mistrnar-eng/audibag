@@ -1,1 +1,7 @@
 eva-mats-prompt.txt
+eva-mats-prompt.txt
+.env
+.env.*
+!.env.example
+node_modules/
+>>>>>>> d09b30dde6a945a9deb99b54295f15e5134382fe

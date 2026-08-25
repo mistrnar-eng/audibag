@@ -16,7 +16,15 @@
 </head>
 <body>
   <div class="intro-splash" aria-hidden="true">
-    <div class="splash-mark"><span class="splash-word"><i>e</i><b>·</b><i>tron</i></span><span class="splash-rule"></span><span class="splash-subtitle">ACCESSORIES / EV STORAGE</span></div>
+    <div class="splash-mark">
+      <svg class="splash-glyph" viewBox="0 0 100 100" width="72" height="72" focusable="false">
+        <circle class="splash-glyph-ring" cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
+        <path class="splash-glyph-bolt" d="M54 20 L34 56 H47 L43 82 L70 42 H56 Z" fill="var(--red)"></path>
+      </svg>
+      <span class="splash-word"><i>e</i><b>·</b><i>tron</i></span>
+      <span class="splash-rule"></span>
+      <span class="splash-subtitle">ACCESSORIES / EV STORAGE</span>
+    </div>
   </div>
   <header class="site-header">
     <a class="brand" href="#top" aria-label="e-tron Accessories home">e·tron <span>ACCESSORIES</span></a>
@@ -43,7 +51,10 @@
         <div class="media-meta"><span id="hero-counter">01 / 01</span><span>EV STORAGE SYSTEM</span></div>
         <div class="image-frame hero-carousel" aria-label="Product image carousel">
           <button class="carousel-control carousel-prev" type="button" aria-label="Previous product image">←</button>
-          <img id="hero-image" src="product.jpg" alt="Premium EV charging cable storage bag" fetchpriority="high">
+          <div class="hero-carousel-stage">
+            <img class="hero-slide is-active" id="hero-image" src="product.jpg" alt="Premium EV charging cable storage bag" fetchpriority="high">
+            <img class="hero-slide" id="hero-image-next" alt="" aria-hidden="true">
+          </div>
           <button class="carousel-control carousel-next" type="button" aria-label="Next product image">→</button>
         </div>
         <div class="media-caption"><span>Charging cable bag</span><span>Designed for everyday use</span></div>

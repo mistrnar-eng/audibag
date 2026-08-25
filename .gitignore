@@ -1,0 +1,5 @@
+eva-mats-prompt.txt
+.env
+.env.*
+!.env.example
+node_modules/

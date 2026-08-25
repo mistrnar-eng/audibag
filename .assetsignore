@@ -1,0 +1,14 @@
+node_modules/
+.git/
+.env
+.env.*
+!.env.example
+netlify/
+netlify.toml
+package.json
+package-lock.json
+bun.lockb
+wrangler.toml
+*.ps1
+*.code-workspace
+eva-mats-prompt.txt

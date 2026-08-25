@@ -82,17 +82,23 @@ function setupOrderForm() {
     const button = form.querySelector("button[type=submit]");
     button.disabled = true;
     status.textContent = "Надсилання замовлення...";
+    if (window.location.protocol === "file:") {
+      status.textContent = "Для справжнього надсилання відкрийте сайт через Netlify, а не index.html з комп'ютера.";
+      button.disabled = false;
+      return;
+    }
     const order = Object.fromEntries(new FormData(form));
     order.price = document.querySelector("#price").textContent;
     try {
-      const response = await fetch("/.netlify/functions/order", {
+      const response = await fetch("/api/order", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order)
       });
-      if (!response.ok) throw new Error("Order request failed");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Order request failed");
       status.textContent = "Замовлення надіслано. Ми зв'яжемося з вами найближчим часом.";
       form.reset();
-    } catch {
-      status.textContent = "Не вдалося надіслати. Перевірте підключення або напишіть нам напряму.";
+    } catch (error) {
+      status.textContent = error.message || "Не вдалося надіслати замовлення.";
     } finally {
       button.disabled = false;
     }

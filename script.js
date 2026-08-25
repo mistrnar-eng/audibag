@@ -31,6 +31,27 @@ function setupContacts() {
   });
 }
 
+function setupOrderForm() {
+  const form = document.querySelector("#order-form");
+  const status = document.querySelector("#form-status");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    status.textContent = "Надсилання запиту...";
+    const order = Object.fromEntries(new FormData(form));
+    try {
+      const response = await fetch("/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Не вдалося надіслати запит");
+      status.textContent = "Запит надіслано. Ми зв'яжемося з вами найближчим часом.";
+      form.reset();
+    } catch (error) {
+      status.textContent = error.message || "Не вдалося надіслати запит.";
+    } finally { button.disabled = false; }
+  });
+}
+
 function setupRevealAnimations() {
   const elements = document.querySelectorAll(".reveal, .benefit");
   if (reducedMotion || !("IntersectionObserver" in window)) { elements.forEach((element) => element.classList.add("visible")); return; }
@@ -64,5 +85,6 @@ function setupSmoothScrolling() {
 
 setupTextSize();
 setupContacts();
+setupOrderForm();
 setupRevealAnimations();
 setupSmoothScrolling();

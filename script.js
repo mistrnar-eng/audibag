@@ -62,7 +62,7 @@ function setupHeroCarousel() {
       image.alt = slides[currentIndex].alt;
       updateCounter();
       requestAnimationFrame(() => frame.classList.remove("is-changing"));
-    }, 220);
+    }, 1500);
   }
 
   let autoPlayTimer = window.setInterval(() => showSlide(1), 15000);

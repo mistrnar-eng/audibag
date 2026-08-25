@@ -41,9 +41,9 @@ function setupOrderForm() {
     status.textContent = "Надсилання запиту...";
     const order = Object.fromEntries(new FormData(form));
     try {
-      const response = await fetch("/api/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "Не вдалося надіслати запит");
+      const formData = new URLSearchParams({ "form-name": "orders", ...order });
+      const response = await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString() });
+      if (!response.ok) throw new Error("Не вдалося надіслати запит");
       status.textContent = "Запит надіслано. Ми зв'яжемося з вами найближчим часом.";
       form.reset();
     } catch (error) {
